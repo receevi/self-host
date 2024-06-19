@@ -7,11 +7,26 @@ import jwt
 import datetime
 import copy
 import ruamel.yaml
+from ruamel.yaml.scalarstring import LiteralScalarString
+import sys, textwrap
 
 load_dotenv()
 
 supabase_docker_compose_file_location = 'supabase/docker/docker-compose.yml'
 kong_file_location = 'supabase/docker/volumes/api/kong.yml'
+prefunction = """
+local scheme = kong.request.get_scheme()
+if scheme == 'http' then
+  local host = kong.request.get_host()
+  local query = kong.request.get_path_with_query()
+  local url = 'https://' .. host .. query
+  kong.response.set_header('Location',url)
+  return kong.response.exit(302,url)
+end
+""".strip()
+
+def LS(s):
+    return LiteralScalarString(textwrap.dedent(s))
 
 def read_file(filename: str):
     with open(filename, 'r') as file_obj:
@@ -37,6 +52,10 @@ def setup_docker_compose():
     kong_env_vars = compose_file_content['services']['kong']['environment']
     if 'acme' not in kong_env_vars['KONG_PLUGINS']:
         kong_env_vars['KONG_PLUGINS'] = kong_env_vars['KONG_PLUGINS'] + ',acme'
+    if 'KONG_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
+        kong_env_vars['KONG_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
+    if 'KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
+        kong_env_vars['KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
     with open(supabase_docker_compose_file_location, 'w') as compose_file:
         yaml.dump(compose_file_content, compose_file)
 
@@ -99,7 +118,6 @@ def setup_kong():
     }
 
     for index, service in enumerate(kong_file_content['services']):
-        print(service)
         if service['name'] == 'receevi':
             receevi_service_present_at = index
         else:
@@ -114,12 +132,8 @@ def setup_kong():
     if 'plugins' not in kong_file_content:
         kong_file_content['plugins'] = []
 
-    acme_plugin_present_at = -1
-
-    for index, plugin in enumerate(kong_file_content['plugins']):
-        if plugin['name'] == 'acme':
-            acme_plugin_present_at = index
-            break
+    acme_plugin_present = False
+    prefunction_plugin_present = False
 
     acme_plugin = {
         'name': 'acme',
@@ -133,10 +147,26 @@ def setup_kong():
         }
     }
 
-    if acme_plugin_present_at == -1:
+    prefunction_plugin = {
+        'name': 'pre-function',
+        'config': {
+            'access': [LS(prefunction)]
+        }
+    }
+
+    for index, plugin in enumerate(kong_file_content['plugins']):
+        if plugin['name'] == 'acme':
+            kong_file_content['plugins'][index] = acme_plugin
+            acme_plugin_present = True
+        if plugin['name'] == 'pre-function':
+            kong_file_content['plugins'][index] = prefunction_plugin
+            prefunction_plugin_present = True
+
+    if not acme_plugin_present:
         kong_file_content['plugins'].append(acme_plugin)
-    else:
-        kong_file_content['plugins'][acme_plugin_present_at] = acme_plugin
+
+    if not prefunction_plugin_present:
+        kong_file_content['plugins'].append(prefunction_plugin)
 
     with open(kong_file_location, 'w') as kong_file:
         yaml.dump(kong_file_content, kong_file)

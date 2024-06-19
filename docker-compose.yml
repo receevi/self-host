@@ -1,0 +1,20 @@
+services:
+  receevi:
+    image: ghcr.io/receevi/receevi:main
+    environment:
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN}
+      - WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE=${SUPABASE_SERVICE_ROLE}
+      - WHATSAPP_API_PHONE_NUMBER_ID=${WHATSAPP_API_PHONE_NUMBER_ID}
+      - WHATSAPP_BUSINESS_ACCOUNT_ID=${WHATSAPP_BUSINESS_ACCOUNT_ID}
+    networks:
+      - supabase_default
+
+networks:
+  supabase_default:
+    name: supabase_default
+    external: true

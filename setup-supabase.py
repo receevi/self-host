@@ -52,6 +52,8 @@ def setup_docker_compose():
     kong_env_vars = compose_file_content['services']['kong']['environment']
     if 'acme' not in kong_env_vars['KONG_PLUGINS']:
         kong_env_vars['KONG_PLUGINS'] = kong_env_vars['KONG_PLUGINS'] + ',acme'
+    if 'pre-function' not in kong_env_vars['KONG_PLUGINS']:
+        kong_env_vars['KONG_PLUGINS'] = kong_env_vars['KONG_PLUGINS'] + ',pre-function'
     if 'KONG_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
         kong_env_vars['KONG_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
     if 'KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:

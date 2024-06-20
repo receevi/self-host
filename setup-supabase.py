@@ -16,7 +16,8 @@ supabase_docker_compose_file_location = 'supabase/docker/docker-compose.yml'
 kong_file_location = 'supabase/docker/volumes/api/kong.yml'
 prefunction = """
 local scheme = kong.request.get_scheme()
-if scheme == 'http' then
+local path = kong.request.get_path()
+  if scheme == 'http' and not string.match(path, 'acme%-challenge') then
   local host = kong.request.get_host()
   local query = kong.request.get_path_with_query()
   local url = 'https://' .. host .. query

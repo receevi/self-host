@@ -14,6 +14,7 @@ load_dotenv()
 
 supabase_docker_compose_file_location = 'supabase/docker/docker-compose.yml'
 kong_file_location = 'supabase/docker/volumes/api/kong.yml'
+config_path = 'config.yml'
 prefunction = """
 local scheme = kong.request.get_scheme()
 local path = kong.request.get_path()
@@ -25,6 +26,9 @@ local path = kong.request.get_path()
   return kong.response.exit(302,url)
 end
 """.strip()
+KEY_RECEEVI_DOMAIN = 'RECEEVI_DOMAIN'
+KEY_SUPABASE_DOMAIN = 'SUPABASE_DOMAIN'
+KEY_LETSENCRYPT_EMAIL = 'LETSENCRYPT_EMAIL'
 
 def LS(s):
     return LiteralScalarString(textwrap.dedent(s))
@@ -36,6 +40,12 @@ def read_file(filename: str):
 def write_file(filename: str, content: str):
     with open(filename, 'w') as file_obj:
         file_obj.write(content)
+
+def read_config():
+    config_yaml = read_file(config_path)
+    yaml = ruamel.yaml.YAML()
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    return yaml.load(config_yaml)
 
 def setup_docker_compose():
     docker_compose_yaml = read_file(supabase_docker_compose_file_location)
@@ -99,7 +109,7 @@ def setup_env_vars():
         set_key(dotenv_path=env_file_path, key_to_set="SERVICE_ROLE_KEY", value_to_set=service_key)
         set_key(dotenv_path='.env', key_to_set="SUPABASE_SERVICE_ROLE", value_to_set=service_key)
 
-def setup_kong():
+def setup_kong(app_config):
     kong_yaml = read_file(kong_file_location)
     yaml = ruamel.yaml.YAML()
     yaml.indent(mapping=2, sequence=4, offset=2)
@@ -115,7 +125,7 @@ def setup_kong():
                 'name': 'receevi-all',
                 'strip_path': True,
                 'paths': ['/'],
-                'hosts': ['local.receevi.com']
+                'hosts': [app_config[KEY_RECEEVI_DOMAIN]]
             }
         ]
     }
@@ -125,7 +135,7 @@ def setup_kong():
             receevi_service_present_at = index
         else:
             for route in service['routes']:
-                route['hosts'] = ['local-supabase.receevi.com']
+                route['hosts'] = [app_config[KEY_SUPABASE_DOMAIN]]
 
     if receevi_service_present_at == -1:
         kong_file_content['services'].append(receevi_kong_service)
@@ -141,11 +151,11 @@ def setup_kong():
     acme_plugin = {
         'name': 'acme',
         'config': {
-            'account_email': 'hello@test.com',
+            'account_email': app_config[KEY_LETSENCRYPT_EMAIL],
             'tos_accepted': True,
             'domains': [
-                'local.receevi.com',
-                'local-supabase.receevi.com',
+                app_config[KEY_RECEEVI_DOMAIN],
+                app_config[KEY_SUPABASE_DOMAIN],
             ]
         }
     }
@@ -175,9 +185,10 @@ def setup_kong():
         yaml.dump(kong_file_content, kong_file)
 
 def main():
+    app_config = read_config()
     setup_docker_compose()
     setup_env_vars()
-    setup_kong()
+    setup_kong(app_config)
 
 if __name__ == '__main__':
     main()

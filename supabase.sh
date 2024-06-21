@@ -12,7 +12,6 @@ if [ ! -f ./docker/.env ]; then
     cp ./docker/.env.example ./docker/.env
 fi
 
-rm -rf ./docker/volumes/functions
 cp -r ../receevi/supabase/functions ./docker/volumes/functions
 
 popd

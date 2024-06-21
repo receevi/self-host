@@ -73,7 +73,8 @@ def setup_docker_compose():
     with open(supabase_docker_compose_file_location, 'w') as compose_file:
         yaml.dump(compose_file_content, compose_file)
 
-def setup_env_vars():
+def setup_env_vars(app_config):
+    supabase_url = f'https://{app_config[KEY_SUPABASE_DOMAIN]}'
     env_file_path = Path("supabase/docker/.env")
     config = dotenv_values("supabase/docker/.env")
     if 'your' in config['JWT_SECRET']:
@@ -86,6 +87,9 @@ def setup_env_vars():
     set_key(dotenv_path=env_file_path, key_to_set="STUDIO_DEFAULT_PROJECT", value_to_set='Receevi')
     set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTP_PORT", value_to_set='80')
     set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTPS_PORT", value_to_set='443')
+    set_key(dotenv_path=env_file_path, key_to_set="SITE_URL", value_to_set=supabase_url)
+    set_key(dotenv_path=env_file_path, key_to_set="API_EXTERNAL_URL", value_to_set=supabase_url)
+    set_key(dotenv_path=env_file_path, key_to_set="SUPABASE_PUBLIC_URL", value_to_set=supabase_url)
 
     current_time = datetime.datetime.now()
     epx_time = current_time + datetime.timedelta(days= 5 * 365.25)
@@ -190,7 +194,7 @@ def setup_kong(app_config):
 def main():
     app_config = read_config()
     setup_docker_compose()
-    setup_env_vars()
+    setup_env_vars(app_config)
     setup_kong(app_config)
 
 if __name__ == '__main__':

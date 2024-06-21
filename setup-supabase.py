@@ -29,6 +29,7 @@ end
 KEY_RECEEVI_DOMAIN = 'RECEEVI_DOMAIN'
 KEY_SUPABASE_DOMAIN = 'SUPABASE_DOMAIN'
 KEY_LETSENCRYPT_EMAIL = 'LETSENCRYPT_EMAIL'
+KEY_LETSENCRYPT_TOS_ACCEPTED = 'LETSENCRYPT_TOS_ACCEPTED'
 
 def LS(s):
     return LiteralScalarString(textwrap.dedent(s))
@@ -116,6 +117,8 @@ def setup_kong(app_config):
     kong_file_content = yaml.load(kong_yaml)
 
     receevi_service_present_at = -1
+
+    assert KEY_LETSENCRYPT_TOS_ACCEPTED in app_config and app_config[KEY_LETSENCRYPT_TOS_ACCEPTED] == True
 
     receevi_kong_service = {
         'name': 'receevi',

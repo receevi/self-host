@@ -1,6 +1,6 @@
 services:
   receevi:
-    image: ghcr.io/receevi/receevi:main
+    image: receevi
     environment:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN}

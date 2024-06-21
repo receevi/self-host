@@ -2,15 +2,16 @@
 
 set -e
 
-git clone -n --depth=1 --filter=tree:0 https://github.com/receevi/receevi | true
+if [ ! -d ./receevi ]; then
+    git clone https://github.com/receevi/receevi
+fi
+
 pushd receevi
-git sparse-checkout set --no-cone supabase
-git checkout
 git pull
 popd
 
 if [ ! -f ./.env ]; then
-    cp ./.env.example ./.env
+    cp ./receevi/.env.example ./.env
 fi
 
 ./setup-python.sh
@@ -19,6 +20,11 @@ source .venv/bin/activate
 python initialize-variables.py
 
 ./supabase.sh
+
+cp .env ./receevi/.env
+pushd receevi
+docker build -t receevi .
+popd
 
 source supabase/docker/.env
 

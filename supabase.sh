@@ -12,7 +12,9 @@ if [ ! -f ./docker/.env ]; then
     cp ./docker/.env.example ./docker/.env
 fi
 
-cp -r ../receevi/supabase/functions ./docker/volumes/functions
+cp -r ../receevi/supabase/functions/* ./docker/volumes/functions
+rm -f ./docker/volumes/functions/_shared/database.types.ts
+cp ../receevi/lib/database.types.ts ./docker/volumes/functions/_shared/database.types.ts
 
 popd
 

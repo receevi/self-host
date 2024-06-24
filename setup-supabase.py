@@ -63,6 +63,8 @@ def setup_docker_compose(app_config):
         function_environments['WHATSAPP_BUSINESS_ACCOUNT_ID'] = os.getenv('WHATSAPP_BUSINESS_ACCOUNT_ID')
     function_environments['SUPABASE_URL'] = supabase_url
 
+    compose_file_content['services']['studio']['SUPABASE_URL'] = supabase_url
+
     kong_env_vars = compose_file_content['services']['kong']['environment']
     if 'acme' not in kong_env_vars['KONG_PLUGINS']:
         kong_env_vars['KONG_PLUGINS'] = kong_env_vars['KONG_PLUGINS'] + ',acme'

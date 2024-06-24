@@ -48,7 +48,8 @@ def read_config():
     yaml.indent(mapping=2, sequence=4, offset=2)
     return yaml.load(config_yaml)
 
-def setup_docker_compose():
+def setup_docker_compose(app_config):
+    supabase_url = f'https://{app_config[KEY_SUPABASE_DOMAIN]}'
     docker_compose_yaml = read_file(supabase_docker_compose_file_location)
     yaml = ruamel.yaml.YAML()
     yaml.indent(mapping=2, sequence=4, offset=2)
@@ -60,6 +61,7 @@ def setup_docker_compose():
         function_environments['WHATSAPP_API_PHONE_NUMBER_ID'] = os.getenv('WHATSAPP_API_PHONE_NUMBER_ID')
     if 'WHATSAPP_BUSINESS_ACCOUNT_ID' not in function_environments:
         function_environments['WHATSAPP_BUSINESS_ACCOUNT_ID'] = os.getenv('WHATSAPP_BUSINESS_ACCOUNT_ID')
+    function_environments['SUPABASE_URL'] = supabase_url
 
     kong_env_vars = compose_file_content['services']['kong']['environment']
     if 'acme' not in kong_env_vars['KONG_PLUGINS']:
@@ -193,7 +195,7 @@ def setup_kong(app_config):
 
 def main():
     app_config = read_config()
-    setup_docker_compose()
+    setup_docker_compose(app_config)
     setup_env_vars(app_config)
     setup_kong(app_config)
 

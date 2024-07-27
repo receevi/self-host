@@ -1,3 +1,5 @@
+name: receevi
+
 services:
   receevi:
     container_name: receevi
@@ -12,10 +14,3 @@ services:
       - SUPABASE_SERVICE_ROLE=${SUPABASE_SERVICE_ROLE}
       - WHATSAPP_API_PHONE_NUMBER_ID=${WHATSAPP_API_PHONE_NUMBER_ID}
       - WHATSAPP_BUSINESS_ACCOUNT_ID=${WHATSAPP_BUSINESS_ACCOUNT_ID}
-    networks:
-      - supabase_default
-
-networks:
-  supabase_default:
-    name: supabase_default
-    external: true

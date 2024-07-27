@@ -29,6 +29,7 @@ def setup_docker_compose(app_config):
     yaml.indent(mapping=2, sequence=4, offset=2)
     compose_file_content = yaml.load(docker_compose_yaml)
     product_name = app_config[KEY_PRODUCT_NAME]
+    compose_file_content['name'] = product_name
     compose_file_content['services']['receevi']['container_name'] = f'{product_name}-receevi'
     with open(docker_compose_file_location, 'w') as compose_file:
         yaml.dump(compose_file_content, compose_file)

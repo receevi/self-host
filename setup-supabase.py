@@ -76,8 +76,8 @@ def setup_docker_compose(app_config):
     if 'KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
         kong_env_vars['KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
 
-    compose_file_content['name'] = f'{product_name}-supabase'
     product_name = app_config[KEY_PRODUCT_NAME]
+    compose_file_content['name'] = f'{product_name}-supabase'
     for _, service_obj in compose_file_content['services'].items():
         if product_name not in service_obj['container_name']:
             service_obj['container_name'] = service_obj['container_name'].replace('supabase-', f'{product_name}-supabase-')

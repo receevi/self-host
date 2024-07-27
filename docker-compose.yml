@@ -1,5 +1,6 @@
 services:
   receevi:
+    container_name: receevi
     image: receevi
     environment:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}

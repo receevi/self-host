@@ -30,6 +30,7 @@ KEY_RECEEVI_DOMAIN = 'RECEEVI_DOMAIN'
 KEY_SUPABASE_DOMAIN = 'SUPABASE_DOMAIN'
 KEY_LETSENCRYPT_EMAIL = 'LETSENCRYPT_EMAIL'
 KEY_LETSENCRYPT_TOS_ACCEPTED = 'LETSENCRYPT_TOS_ACCEPTED'
+KEY_PRODUCT_NAME = 'PRODUCT_NAME'
 
 def LS(s):
     return LiteralScalarString(textwrap.dedent(s))
@@ -74,6 +75,12 @@ def setup_docker_compose(app_config):
         kong_env_vars['KONG_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
     if 'KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
         kong_env_vars['KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
+
+    product_name = app_config[KEY_PRODUCT_NAME]
+    for _, service_obj in compose_file_content['services'].items():
+        if product_name not in service_obj['container_name']:
+            service_obj['container_name'] = service_obj['container_name'].replace('supabase-', f'{product_name}-supabase-')
+
     with open(supabase_docker_compose_file_location, 'w') as compose_file:
         yaml.dump(compose_file_content, compose_file)
 

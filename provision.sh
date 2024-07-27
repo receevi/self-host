@@ -27,6 +27,7 @@ docker build -t receevi .
 popd
 
 source supabase/docker/.env
+python setup-main-compose.py
 
 docker compose up -d
 

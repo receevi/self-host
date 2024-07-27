@@ -5,6 +5,7 @@ import ruamel.yaml
 
 env_file_path = Path(".env")
 config_path = 'config.yml'
+KEY_PRODUCT_NAME = 'PRODUCT_NAME'
 KEY_RECEEVI_DOMAIN = 'RECEEVI_DOMAIN'
 KEY_SUPABASE_DOMAIN = 'SUPABASE_DOMAIN'
 KEY_LETSENCRYPT_EMAIL = 'LETSENCRYPT_EMAIL'
@@ -70,6 +71,8 @@ def main():
     except FileNotFoundError:
         config_file_content = {}
     # print(type(config_file_content))
+    if KEY_PRODUCT_NAME not in config_file_content:
+        config_file_content[KEY_PRODUCT_NAME] =  input("Enter product / company name without space all small characters (ex., examplecompany) : ")
     if KEY_RECEEVI_DOMAIN not in config_file_content:
         config_file_content[KEY_RECEEVI_DOMAIN] =  input("Enter receevi domain  (ex., receevi.exmaple.com) : ")
     if KEY_SUPABASE_DOMAIN not in config_file_content:

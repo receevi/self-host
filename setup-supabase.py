@@ -103,6 +103,7 @@ def setup_env_vars(app_config):
     else:
         set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTP_PORT", value_to_set=str(app_config[KEY_HTTP_PORT]))
         set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTPS_PORT", value_to_set=str(app_config[KEY_HTTPS_PORT]))
+    set_key(dotenv_path=env_file_path, key_to_set="DISABLE_SIGNUP", value_to_set='true')
 
     current_time = datetime.datetime.now()
     epx_time = current_time + datetime.timedelta(days= 5 * 365.25)

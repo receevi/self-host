@@ -1,3 +1,4 @@
+from common import KEY_FACEBOOK_APP_SECRET, KEY_HTTP_PORT, KEY_HTTPS_PORT, KEY_LETSENCRYPT_EMAIL, KEY_LETSENCRYPT_TOS_ACCEPTED, KEY_PRODUCT_NAME, KEY_RECEEVI_DOMAIN, KEY_SETUP_HTTPS, KEY_SUPABASE_DOMAIN, KEY_WHATSAPP_ACCESS_TOKEN, KEY_WHATSAPP_API_PHONE_NUMBER_ID, KEY_WHATSAPP_BUSINESS_ACCOUNT_ID
 from dotenv import set_key, dotenv_values
 from pathlib import Path
 import os
@@ -5,16 +6,6 @@ import ruamel.yaml
 
 env_file_path = Path(".env")
 config_path = 'config.yml'
-KEY_PRODUCT_NAME = 'PRODUCT_NAME'
-KEY_RECEEVI_DOMAIN = 'RECEEVI_DOMAIN'
-KEY_SUPABASE_DOMAIN = 'SUPABASE_DOMAIN'
-KEY_LETSENCRYPT_EMAIL = 'LETSENCRYPT_EMAIL'
-KEY_LETSENCRYPT_TOS_ACCEPTED = 'LETSENCRYPT_TOS_ACCEPTED'
-KEY_FACEBOOK_APP_SECRET = 'FACEBOOK_APP_SECRET'
-KEY_WHATSAPP_ACCESS_TOKEN = 'WHATSAPP_ACCESS_TOKEN'
-KEY_WHATSAPP_API_PHONE_NUMBER_ID = 'WHATSAPP_API_PHONE_NUMBER_ID'
-KEY_WHATSAPP_BUSINESS_ACCOUNT_ID = 'WHATSAPP_BUSINESS_ACCOUNT_ID'
-
 
 facebook_app_secret_instructions = """
 
@@ -49,6 +40,10 @@ whatsapp_business_account_id_instructions = """WhatsApp Business Account ID: """
 class TOSNotAccepted(BaseException):
     def __init__(self, *args: object) -> None:
         super().__init__("TOS Not accepted")
+
+class InvalidYN(BaseException):
+    def __init__(self, *args: object) -> None:
+        super().__init__("Response should be either Y or N")
 
 def read_file(filename: str):
     with open(filename, 'r') as file_obj:
@@ -87,7 +82,30 @@ def main():
         config_file_content[KEY_WHATSAPP_API_PHONE_NUMBER_ID] = input(phone_number_id_instructions)
     if KEY_WHATSAPP_BUSINESS_ACCOUNT_ID not in config_file_content:
         config_file_content[KEY_WHATSAPP_BUSINESS_ACCOUNT_ID] = input(whatsapp_business_account_id_instructions)
-    if KEY_LETSENCRYPT_TOS_ACCEPTED not in config_file_content:
+
+    if KEY_HTTP_PORT not in config_file_content:
+        http_port_text = input("http port (default. 80): ")
+        if http_port_text.strip() == '':
+            config_file_content[KEY_HTTP_PORT] = 80
+        else:
+            config_file_content[KEY_HTTP_PORT] = int(http_port_text)
+
+    if KEY_HTTPS_PORT not in config_file_content:
+        https_port_text = input("https port (default. 443): ")
+        if https_port_text.strip() == '':
+            config_file_content[KEY_HTTPS_PORT] = 443
+        else:
+            config_file_content[KEY_HTTPS_PORT] = int(https_port_text)
+
+    if KEY_SETUP_HTTPS not in config_file_content:
+        tos_accepted = input("Do you want to setup HTTPS using let's encrypt? (Y/N) ")
+        if tos_accepted in ('Y', 'y'):
+            config_file_content[KEY_SETUP_HTTPS] = True
+        if tos_accepted in ('N', 'n'):
+            config_file_content[KEY_SETUP_HTTPS] = False
+        else:
+            raise InvalidYN()
+    if config_file_content[KEY_SETUP_HTTPS] and KEY_LETSENCRYPT_TOS_ACCEPTED not in config_file_content:
         tos_accepted = input("Do you accept TOS of let's encrypt (https://community.letsencrypt.org/tos)? (Y/N) ")
         if tos_accepted in ('Y', 'y'):
             config_file_content[KEY_LETSENCRYPT_TOS_ACCEPTED] = True

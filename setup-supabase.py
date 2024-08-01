@@ -1,5 +1,6 @@
 import re
 import os
+from common import KEY_HTTP_PORT, KEY_HTTPS_PORT, KEY_LETSENCRYPT_EMAIL, KEY_LETSENCRYPT_TOS_ACCEPTED, KEY_PRODUCT_NAME, KEY_RECEEVI_DOMAIN, KEY_SETUP_HTTPS, KEY_SUPABASE_DOMAIN, read_file
 from dotenv import set_key, dotenv_values, load_dotenv
 from pathlib import Path
 import os
@@ -26,22 +27,9 @@ local path = kong.request.get_path()
   return kong.response.exit(302,url)
 end
 """.strip()
-KEY_RECEEVI_DOMAIN = 'RECEEVI_DOMAIN'
-KEY_SUPABASE_DOMAIN = 'SUPABASE_DOMAIN'
-KEY_LETSENCRYPT_EMAIL = 'LETSENCRYPT_EMAIL'
-KEY_LETSENCRYPT_TOS_ACCEPTED = 'LETSENCRYPT_TOS_ACCEPTED'
-KEY_PRODUCT_NAME = 'PRODUCT_NAME'
 
 def LS(s):
     return LiteralScalarString(textwrap.dedent(s))
-
-def read_file(filename: str):
-    with open(filename, 'r') as file_obj:
-        return file_obj.read()
-
-def write_file(filename: str, content: str):
-    with open(filename, 'w') as file_obj:
-        file_obj.write(content)
 
 def read_config():
     config_yaml = read_file(config_path)
@@ -67,10 +55,18 @@ def setup_docker_compose(app_config):
     compose_file_content['services']['studio']['environment']['SUPABASE_URL'] = supabase_url
 
     kong_env_vars = compose_file_content['services']['kong']['environment']
-    if 'acme' not in kong_env_vars['KONG_PLUGINS']:
-        kong_env_vars['KONG_PLUGINS'] = kong_env_vars['KONG_PLUGINS'] + ',acme'
-    if 'pre-function' not in kong_env_vars['KONG_PLUGINS']:
-        kong_env_vars['KONG_PLUGINS'] = kong_env_vars['KONG_PLUGINS'] + ',pre-function'
+    plugin_list = kong_env_vars['KONG_PLUGINS'].split(',')
+    if app_config[KEY_SETUP_HTTPS]:
+        if 'acme' not in plugin_list:
+            plugin_list.append('acme')
+        if 'pre-function' not in plugin_list:
+            plugin_list.append('pre-function')
+    else:
+        if 'acme' in plugin_list:
+            plugin_list.remove('acme')
+        if 'pre-function' in plugin_list:
+            plugin_list.remove('pre-function')
+    kong_env_vars['KONG_PLUGINS'] = ','.join(plugin_list)
     if 'KONG_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
         kong_env_vars['KONG_LUA_SSL_TRUSTED_CERTIFICATE'] = '/etc/ssl/certs/ca-certificates.crt'
     if 'KONG_NGINX_PROXY_LUA_SSL_TRUSTED_CERTIFICATE' not in kong_env_vars:
@@ -97,11 +93,16 @@ def setup_env_vars(app_config):
         set_key(dotenv_path=env_file_path, key_to_set="DASHBOARD_PASSWORD", value_to_set=os.urandom(32).hex())
     set_key(dotenv_path=env_file_path, key_to_set="STUDIO_DEFAULT_ORGANIZATION", value_to_set='Receevi')
     set_key(dotenv_path=env_file_path, key_to_set="STUDIO_DEFAULT_PROJECT", value_to_set='Receevi')
-    set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTP_PORT", value_to_set='80')
-    set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTPS_PORT", value_to_set='443')
     set_key(dotenv_path=env_file_path, key_to_set="SITE_URL", value_to_set=supabase_url)
     set_key(dotenv_path=env_file_path, key_to_set="API_EXTERNAL_URL", value_to_set=supabase_url)
     set_key(dotenv_path=env_file_path, key_to_set="SUPABASE_PUBLIC_URL", value_to_set=supabase_url)
+
+    if app_config[KEY_SETUP_HTTPS]:
+        set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTP_PORT", value_to_set='80')
+        set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTPS_PORT", value_to_set='443')
+    else:
+        set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTP_PORT", value_to_set=str(app_config[KEY_HTTP_PORT]))
+        set_key(dotenv_path=env_file_path, key_to_set="KONG_HTTPS_PORT", value_to_set=str(app_config[KEY_HTTPS_PORT]))
 
     current_time = datetime.datetime.now()
     epx_time = current_time + datetime.timedelta(days= 5 * 365.25)
@@ -134,8 +135,6 @@ def setup_kong(app_config):
 
     receevi_service_present_at = -1
 
-    assert KEY_LETSENCRYPT_TOS_ACCEPTED in app_config and app_config[KEY_LETSENCRYPT_TOS_ACCEPTED] == True
-
     receevi_kong_service = {
         'name': 'receevi',
         'url': 'http://receevi:3000/',
@@ -164,41 +163,46 @@ def setup_kong(app_config):
     if 'plugins' not in kong_file_content:
         kong_file_content['plugins'] = []
 
-    acme_plugin_present = False
-    prefunction_plugin_present = False
+    if app_config[KEY_SETUP_HTTPS]:
+        assert KEY_LETSENCRYPT_TOS_ACCEPTED in app_config and app_config[KEY_LETSENCRYPT_TOS_ACCEPTED] == True
 
-    acme_plugin = {
-        'name': 'acme',
-        'config': {
-            'account_email': app_config[KEY_LETSENCRYPT_EMAIL],
-            'tos_accepted': True,
-            'domains': [
-                app_config[KEY_RECEEVI_DOMAIN],
-                app_config[KEY_SUPABASE_DOMAIN],
-            ]
+        acme_plugin_present = False
+        prefunction_plugin_present = False
+
+        acme_plugin = {
+            'name': 'acme',
+            'config': {
+                'account_email': app_config[KEY_LETSENCRYPT_EMAIL],
+                'tos_accepted': True,
+                'domains': [
+                    app_config[KEY_RECEEVI_DOMAIN],
+                    app_config[KEY_SUPABASE_DOMAIN],
+                ]
+            }
         }
-    }
 
-    prefunction_plugin = {
-        'name': 'pre-function',
-        'config': {
-            'access': [LS(prefunction)]
+        prefunction_plugin = {
+            'name': 'pre-function',
+            'config': {
+                'access': [LS(prefunction)]
+            }
         }
-    }
 
-    for index, plugin in enumerate(kong_file_content['plugins']):
-        if plugin['name'] == 'acme':
-            kong_file_content['plugins'][index] = acme_plugin
-            acme_plugin_present = True
-        if plugin['name'] == 'pre-function':
-            kong_file_content['plugins'][index] = prefunction_plugin
-            prefunction_plugin_present = True
+        for index, plugin in enumerate(kong_file_content['plugins']):
+            if plugin['name'] == 'acme':
+                kong_file_content['plugins'][index] = acme_plugin
+                acme_plugin_present = True
+            if plugin['name'] == 'pre-function':
+                kong_file_content['plugins'][index] = prefunction_plugin
+                prefunction_plugin_present = True
 
-    if not acme_plugin_present:
-        kong_file_content['plugins'].append(acme_plugin)
+        if not acme_plugin_present:
+            kong_file_content['plugins'].append(acme_plugin)
 
-    if not prefunction_plugin_present:
-        kong_file_content['plugins'].append(prefunction_plugin)
+        if not prefunction_plugin_present:
+            kong_file_content['plugins'].append(prefunction_plugin)
+    else:
+        kong_file_content['plugins'] = []
 
     with open(kong_file_location, 'w') as kong_file:
         yaml.dump(kong_file_content, kong_file)

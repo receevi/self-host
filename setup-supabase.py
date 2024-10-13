@@ -83,6 +83,7 @@ def setup_docker_compose(app_config):
 
 def setup_env_vars(app_config):
     supabase_url = f'https://{app_config[KEY_SUPABASE_DOMAIN]}'
+    app_url = f'https://{app_config[KEY_RECEEVI_DOMAIN]}'
     env_file_path = Path("supabase/docker/.env")
     config = dotenv_values("supabase/docker/.env")
     if 'your' in config['JWT_SECRET']:
@@ -93,7 +94,7 @@ def setup_env_vars(app_config):
         set_key(dotenv_path=env_file_path, key_to_set="DASHBOARD_PASSWORD", value_to_set=os.urandom(32).hex())
     set_key(dotenv_path=env_file_path, key_to_set="STUDIO_DEFAULT_ORGANIZATION", value_to_set='Receevi')
     set_key(dotenv_path=env_file_path, key_to_set="STUDIO_DEFAULT_PROJECT", value_to_set='Receevi')
-    set_key(dotenv_path=env_file_path, key_to_set="SITE_URL", value_to_set=supabase_url)
+    set_key(dotenv_path=env_file_path, key_to_set="SITE_URL", value_to_set=app_url)
     set_key(dotenv_path=env_file_path, key_to_set="API_EXTERNAL_URL", value_to_set=supabase_url)
     set_key(dotenv_path=env_file_path, key_to_set="SUPABASE_PUBLIC_URL", value_to_set=supabase_url)
 

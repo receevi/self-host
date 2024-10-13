@@ -150,12 +150,18 @@ def setup_kong(app_config):
         ]
     }
 
+    product_name = app_config[KEY_PRODUCT_NAME]
+
     for index, service in enumerate(kong_file_content['services']):
         if service['name'] == 'receevi':
             receevi_service_present_at = index
         else:
             for route in service['routes']:
                 route['hosts'] = [app_config[KEY_SUPABASE_DOMAIN]]
+        if service['name'] == 'realtime-v1-ws':
+            service['url'] = f'http://realtime-dev.{product_name}-supabase-realtime:4000/socket'
+        elif service['name'] == 'realtime-v1-rest':
+            service['url'] = f'http://realtime-dev.{product_name}-supabase-realtime:4000/api'
 
     if receevi_service_present_at == -1:
         kong_file_content['services'].append(receevi_kong_service)

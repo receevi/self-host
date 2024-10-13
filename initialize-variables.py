@@ -101,7 +101,7 @@ def main():
         tos_accepted = input("Do you want to setup HTTPS using let's encrypt? (Y/N) ")
         if tos_accepted in ('Y', 'y'):
             config_file_content[KEY_SETUP_HTTPS] = True
-        if tos_accepted in ('N', 'n'):
+        elif tos_accepted in ('N', 'n'):
             config_file_content[KEY_SETUP_HTTPS] = False
         else:
             raise InvalidYN()
